@@ -18,27 +18,7 @@ class usertimeline extends \spouts\spout {
     /** @var string description of this source type */
     public $description = 'The timeline of a given user';
 
-    /**
-     * config params
-     * array of arrays with name, type, default value, required, validation type
-     *
-     * - Values for type: text, password, checkbox
-     * - Values for validation: alpha, email, numeric, int, alnum, notempty
-     *
-     * e.g.
-     * array(
-     *   "id" => array(
-     *     "title"      => "URL",
-     *     "type"       => "text",
-     *     "default"    => "",
-     *     "required"   => true,
-     *     "validation" => array("alnum")
-     *   ),
-     *   ....
-     * )
-     *
-     * @var bool|mixed
-     */
+    /** @var array configurable parameters */
     public $params = [
         'consumer_key' => [
             'title' => 'Consumer Key',
@@ -77,8 +57,8 @@ class usertimeline extends \spouts\spout {
         ]
     ];
 
-    /** @var array|bool current fetched items */
-    protected $items = false;
+    /** @var ?array current fetched items */
+    protected $items = null;
 
     /** @var string URL of the source */
     protected $htmlUrl = '';
@@ -93,7 +73,7 @@ class usertimeline extends \spouts\spout {
      * @return void
      */
     public function rewind() {
-        if ($this->items !== false) {
+        if ($this->items !== null) {
             reset($this->items);
         }
     }
@@ -104,7 +84,7 @@ class usertimeline extends \spouts\spout {
      * @return \SimplePie_Item current item
      */
     public function current() {
-        if ($this->items !== false) {
+        if ($this->items !== null) {
             return $this;
         }
 
@@ -117,7 +97,7 @@ class usertimeline extends \spouts\spout {
      * @return mixed key of current item
      */
     public function key() {
-        if ($this->items !== false) {
+        if ($this->items !== null) {
             return key($this->items);
         }
 
@@ -130,7 +110,7 @@ class usertimeline extends \spouts\spout {
      * @return \SimplePie_Item next item
      */
     public function next() {
-        if ($this->items !== false) {
+        if ($this->items !== null) {
             next($this->items);
         }
 
@@ -143,7 +123,7 @@ class usertimeline extends \spouts\spout {
      * @return bool false if end reached
      */
     public function valid() {
-        if ($this->items !== false) {
+        if ($this->items !== null) {
             return current($this->items) !== false;
         }
 
@@ -159,11 +139,11 @@ class usertimeline extends \spouts\spout {
      * I supress all Warnings of SimplePie for ensuring
      * working plugin in PHP Strict mode
      *
-     * @param mixed $params the params of this source
+     * @param array $params the params of this source
      *
      * @return void
      */
-    public function load($params) {
+    public function load(array $params) {
         $access_token_used = !empty($params['access_token']) && !empty($params['access_token_secret']);
         $twitter = new TwitterOAuth($params['consumer_key'], $params['consumer_secret'], $access_token_used ? $params['access_token'] : null, $access_token_used ? $params['access_token_secret'] : null);
         $timeline = $twitter->get('statuses/user_timeline', ['screen_name' => $params['username'], 'include_rts' => 1, 'count' => 50]);
@@ -198,7 +178,7 @@ class usertimeline extends \spouts\spout {
             return $this->htmlUrl;
         }
 
-        return false;
+        return null;
     }
 
     /**
@@ -207,11 +187,11 @@ class usertimeline extends \spouts\spout {
      * @return string id as hash
      */
     public function getId() {
-        if ($this->items !== false) {
+        if ($this->items !== null) {
             return @current($this->items)->id_str;
         }
 
-        return false;
+        return null;
     }
 
     /**
@@ -220,7 +200,7 @@ class usertimeline extends \spouts\spout {
      * @return string title
      */
     public function getTitle() {
-        if ($this->items !== false) {
+        if ($this->items !== null) {
             $item = @current($this->items);
             $rt = '';
             if (isset($item->retweeted_status)) {
@@ -232,7 +212,7 @@ class usertimeline extends \spouts\spout {
             return $tweet;
         }
 
-        return false;
+        return null;
     }
 
     /**
@@ -241,7 +221,7 @@ class usertimeline extends \spouts\spout {
      * @return string content
      */
     public function getContent() {
-        return;
+        return '';
     }
 
     /**
@@ -250,7 +230,7 @@ class usertimeline extends \spouts\spout {
      * @return string icon url
      */
     public function getIcon() {
-        if ($this->items !== false) {
+        if ($this->items !== null) {
             $item = @current($this->items);
             if (isset($item->retweeted_status)) {
                 $item = $item->retweeted_status;
@@ -259,7 +239,7 @@ class usertimeline extends \spouts\spout {
             return $item->user->profile_image_url;
         }
 
-        return false;
+        return null;
     }
 
     /**
@@ -268,13 +248,13 @@ class usertimeline extends \spouts\spout {
      * @return string link
      */
     public function getLink() {
-        if ($this->items !== false) {
+        if ($this->items !== null) {
             $item = @current($this->items);
 
             return 'https://twitter.com/' . $item->user->screen_name . '/status/' . $item->id_str;
         }
 
-        return false;
+        return null;
     }
 
     /**
@@ -283,7 +263,7 @@ class usertimeline extends \spouts\spout {
      * @return mixed thumbnail data
      */
     public function getThumbnail() {
-        if ($this->items !== false) {
+        if ($this->items !== null) {
             $item = current($this->items);
             if (isset($item->retweeted_status)) {
                 $item = $item->retweeted_status;
@@ -302,10 +282,10 @@ class usertimeline extends \spouts\spout {
      * @return string date
      */
     public function getDate() {
-        if ($this->items !== false) {
+        if ($this->items !== null) {
             $date = date('Y-m-d H:i:s', strtotime(@current($this->items)->created_at));
         }
-        if (strlen($date) == 0) {
+        if (strlen($date) === 0) {
             $date = date('Y-m-d H:i:s');
         }
 
@@ -317,7 +297,7 @@ class usertimeline extends \spouts\spout {
      */
     public function destroy() {
         unset($this->items);
-        $this->items = false;
+        $this->items = null;
     }
 
     /**

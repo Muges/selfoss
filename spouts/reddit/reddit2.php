@@ -16,31 +16,7 @@ class reddit2 extends \spouts\spout {
     /** @var string description of this source type */
     public $description = 'Get your fix from Reddit';
 
-    /**
-     * config params
-     * array of arrays with name, type, default value, required, validation type
-     *
-     * - Values for type: text, password, checkbox, select
-     * - Values for validation: alpha, email, numeric, int, alnum, notempty
-     *
-     * When type is "select", a new entry "values" must be supplied, holding
-     * key/value pairs of internal names (key) and displayed labels (value).
-     * See /spouts/rss/heise for an example.
-     *
-     * e.g.
-     * array(
-     *   "id" => array(
-     *     "title"      => "URL",
-     *     "type"       => "text",
-     *     "default"    => "",
-     *     "required"   => true,
-     *     "validation" => array("alnum")
-     *   ),
-     *   ....
-     * )
-     *
-     * @var bool|mixed
-     */
+    /** @var array configurable parameters */
     public $params = [
         'url' => [
             'title' => 'Subreddit or multireddit url',
@@ -83,11 +59,11 @@ class reddit2 extends \spouts\spout {
     /**
      * loads content for given source
      *
-     * @param string  $url
+     * @param array $params
      *
      * @return void
      */
-    public function load($params) {
+    public function load(array $params) {
         $this->apiKey = \F3::get('readability');
 
         if (!empty($params['password']) && !empty($params['username'])) {
@@ -196,7 +172,7 @@ class reddit2 extends \spouts\spout {
             return $id;
         }
 
-        return false;
+        return null;
     }
 
     /**
@@ -209,7 +185,7 @@ class reddit2 extends \spouts\spout {
             return @current($this->items)->data->title;
         }
 
-        return false;
+        return null;
     }
 
     /**
@@ -233,7 +209,7 @@ class reddit2 extends \spouts\spout {
             return @current($this->items)->data->url;
         }
 
-        return false;
+        return null;
     }
 
     /**
@@ -274,7 +250,7 @@ class reddit2 extends \spouts\spout {
             return @current($this->items)->data->url;
         }
 
-        return false;
+        return null;
     }
 
     /**
@@ -302,7 +278,7 @@ class reddit2 extends \spouts\spout {
             return 'https://www.reddit.com' . @current($this->items)->data->permalink;
         }
 
-        return false;
+        return null;
     }
 
     /**
@@ -315,7 +291,7 @@ class reddit2 extends \spouts\spout {
             return @current($this->items)->data->thumbnail;
         }
 
-        return false;
+        return null;
     }
 
     /**
@@ -342,11 +318,11 @@ class reddit2 extends \spouts\spout {
     /**
      * returns the xml feed url for the source
      *
-     * @param mixed $params params for the source
+     * @param array $params params for the source
      *
      * @return string url as xml
      */
-    public function getXmlUrl($params) {
+    public function getXmlUrl(array $params) {
         return  'reddit://' . urlencode($params['url']);
     }
 
@@ -355,11 +331,13 @@ class reddit2 extends \spouts\spout {
      *
      * @author oxman @github
      *
+     * @param string $url
+     *
      * @return string content
      */
     private function fetchFromReadability($url) {
         if (empty($this->apiKey)) {
-            return false;
+            return null;
         }
         if (function_exists('curl_init')) {
             $content = $this->file_get_contents_curl('https://readability.com/api/content/v1/parser?token=' . $this->apiKey . '&url=' . urlencode($url));
@@ -369,7 +347,7 @@ class reddit2 extends \spouts\spout {
 
         $data = json_decode($content);
         if (isset($data->content) === false) {
-            return false;
+            return null;
         }
 
         return $data->content;
@@ -379,6 +357,8 @@ class reddit2 extends \spouts\spout {
      * fetch content from instapaper.com
      *
      * @author janeczku @github
+     *
+     * @param string $url
      *
      * @return string content
      */
@@ -391,7 +371,7 @@ class reddit2 extends \spouts\spout {
         $dom = new \DOMDocument();
         @$dom->loadHTML($content);
         if (!$dom) {
-            return false;
+            return null;
         }
         $xpath = new \DOMXPath($dom);
         $elements = $xpath->query("//div[@id='story']");
@@ -438,14 +418,12 @@ class reddit2 extends \spouts\spout {
     /**
      * taken from: http://zytzagoo.net/blog/2008/01/23/extracting-images-from-html-using-regular-expressions/
      * Searches for the first occurence of an html <img> element in a string
-     * and extracts the src if it finds it. Returns boolean false in case an
-     * <img> element is not found.
+     * and extracts the src if it finds it. Returns null in case an <img>
+     * element is not found.
      *
-     * @param    string  $str    An HTML string
+     * @param string $html An HTML string
      *
-     * @return   mixed           The contents of the src attribute in the
-     *                           found <img> or boolean false if no <img>
-     *                           is found
+     * @return ?string content of the src attribute of the first image
      */
     private function getImage($html) {
         if (stripos($html, '<img') !== false) {
@@ -456,14 +434,14 @@ class reddit2 extends \spouts\spout {
             if (is_array($matches) && !empty($matches)) {
                 return $matches[2];
             } else {
-                return false;
+                return null;
             }
         } else {
-            return false;
+            return null;
         }
     }
 
-    private function login($params) {
+    private function login(array $params) {
         $login = sprintf('api_type=json&user=%s&passwd=%s', $params['username'], $params['password']);
         $ch = curl_init("https://ssl.reddit.com/api/login/{$params['username']}");
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);

@@ -2,6 +2,8 @@
 
 namespace spouts\rss;
 
+use SimplePie_IRI;
+
 /**
  * Plugin for fetching the news from pro-linux with the full text.
  * Based on heise.php
@@ -19,31 +21,7 @@ class prolinux extends feed {
     /** @var string description of this source type */
     public $description = 'This feed fetches the pro-linux news with full content (not only the header as content)';
 
-    /**
-     * config params
-     * array of arrays with name, type, default value, required, validation type
-     *
-     * - Values for type: text, password, checkbox, select
-     * - Values for validation: alpha, email, numeric, int, alnum, notempty
-     *
-     * When type is "select", a new entry "values" must be supplied, holding
-     * key/value pairs of internal names (key) and displayed labels (value).
-     * See /spouts/rss/heise for an example.
-     *
-     * e.g.
-     * array(
-     *   "id" => array(
-     *     "title"      => "URL",
-     *     "type"       => "text",
-     *     "default"    => "",
-     *     "required"   => true,
-     *     "validation" => array("alnum")
-     *   ),
-     *   ....
-     * )
-     *
-     * @var bool|mixed
-     */
+    /** @var array configurable parameters */
     public $params = [
         'section' => [
             'title' => 'Section',
@@ -91,21 +69,22 @@ class prolinux extends feed {
      * loads content for given source
      *
      * @param string $url
+     * @param array $params
      *
      * @return void
      */
-    public function load($params) {
+    public function load(array $params) {
         parent::load(['url' => $this->getXmlUrl($params)]);
     }
 
     /**
      * returns the xml feed url for the source
      *
-     * @param mixed $params params for the source
+     * @param array $params params for the source
      *
      * @return string url as xml
      */
-    public function getXmlUrl($params) {
+    public function getXmlUrl(array $params) {
         return $this->feedUrls[$params['section']];
     }
 
@@ -115,17 +94,17 @@ class prolinux extends feed {
      * @return string content
      */
     public function getContent() {
-        if ($this->items !== false && $this->valid()) {
+        if ($this->items !== null && $this->valid()) {
             $originalContent = file_get_contents($this->getLink());
             foreach ($this->textDivs as $div) {
                 $content = $this->getTag($div[1], $div[2], $originalContent, $div[0], $div[3]);
                 if (is_array($content) && count($content) >= 1) {
                     $content = $content[0];
                     $content = preg_replace_callback(',<a([^>]+)href="([^>"\s]+)",i', function($matches) {
-                        return "<a\1href=\"" . \spouts\rss\prolinux::absolute("\2", 'http://www.pro-linux.de') . '"';
+                        return '<a' . $matches[1] . 'href="' . SimplePie_IRI::absolutize('http://www.pro-linux.de', $matches[2]) . '"';
                     }, $content);
                     $content = preg_replace_callback(',<img([^>]+)src="([^>"\s]+)",i', function($matches) {
-                        return "<img\1src=\"" . \spouts\rss\prolinux::absolute("\2", 'http://www.pro-linux.de') . '"';
+                        return '<img' . $matches[1] . 'src="' . SimplePie_IRI::absolutize('http://www.pro-linux.de', $matches[2]) . '"';
                     }, $content);
 
                     return $content;
@@ -140,20 +119,22 @@ class prolinux extends feed {
      * get tag by attribute
      * taken from http://www.catswhocode.com/blog/15-php-regular-expressions-for-web-developers
      *
+     * @param string $attr attribute
+     * @param string $value necessary value
+     * @param string $xml data string
+     * @param ?string $tag optional tag
+     * @param ?string $end optional ending
+     *
      * @return string content
-     * @return string $attr attribute
-     * @return string $value necessary value
-     * @return string $xml data string
-     * @return string $tag optional tag
      */
     private function getTag($attr, $value, $xml, $tag = null, $end = null) {
-        if (is_null($tag)) {
+        if ($tag === null) {
             $tag = '\w+';
         } else {
             $tag = preg_quote($tag);
         }
 
-        if (is_null($end)) {
+        if ($end === null) {
             $end = '</\1>';
         } else {
             $end = preg_quote($end);
@@ -165,20 +146,5 @@ class prolinux extends feed {
         preg_match_all($tag_regex, $xml, $matches, PREG_PATTERN_ORDER);
 
         return $matches[3];
-    }
-
-    /**
-     * convert relative url to absolute
-     *
-     * @return string absolute url
-     * @return string $relative url
-     * @return string $absolute url
-     */
-    public static function absolute($relative, $absolute) {
-        if (preg_match(',^(https?://|ftp://|mailto:|news:),i', $relative)) {
-            return $relative;
-        }
-
-        return $absolute . $relative;
     }
 }

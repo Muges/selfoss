@@ -17,31 +17,7 @@ class readability extends feed {
     /** @var string description of this source type */
     public $description = 'This feed cleaning the content with readability.com';
 
-    /**
-     * config params
-     * array of arrays with name, type, default value, required, validation type
-     *
-     * - Values for type: text, password, checkbox, select
-     * - Values for validation: alpha, email, numeric, int, alnum, notempty
-     *
-     * When type is "select", a new entry "values" must be supplied, holding
-     * key/value pairs of internal names (key) and displayed labels (value).
-     * See /spouts/rss/heise for an example.
-     *
-     * e.g.
-     * array(
-     *   "id" => array(
-     *     "title"      => "URL",
-     *     "type"       => "text",
-     *     "default"    => "",
-     *     "required"   => true,
-     *     "validation" => array("alnum")
-     *   ),
-     *   ....
-     * )
-     *
-     * @var bool|mixed
-     */
+    /** @var array configurable parameters */
     public $params = [
         'url' => [
             'title' => 'URL',
@@ -65,13 +41,13 @@ class readability extends feed {
     /**
      * loads content for given source
      *
-     * @param string $url
+     * @param array $params
      *
      * @return void
      */
-    public function load($params) {
+    public function load(array $params) {
         $this->apiKey = $params['api'];
-        if (strlen(trim($this->apiKey)) == 0) {
+        if (strlen(trim($this->apiKey)) === 0) {
             $this->apiKey = \F3::get('readability');
         }
 
@@ -85,7 +61,7 @@ class readability extends feed {
      */
     public function getContent() {
         $contentFromReadability = $this->fetchFromReadability(parent::getLink());
-        if ($contentFromReadability === false) {
+        if ($contentFromReadability === null) {
             return 'readability parse error <br />' . parent::getContent();
         }
 
@@ -97,13 +73,15 @@ class readability extends feed {
      *
      * @author oxman @github
      *
+     * @param string $url
+     *
      * @return string content
      */
     private function fetchFromReadability($url) {
         $content = @file_get_contents('https://readability.com/api/content/v1/parser?token=' . $this->apiKey . '&url=' . $url);
         $data = json_decode($content);
         if (isset($data->content) === false) {
-            return false;
+            return null;
         }
 
         return $data->content;

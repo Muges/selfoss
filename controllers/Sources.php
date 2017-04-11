@@ -71,11 +71,11 @@ class Sources extends BaseController {
         $spout = str_replace('_', '\\', $_GET['spout']);
         $this->view->spout = $spoutLoader->get($spout);
 
-        if ($this->view->spout === false) {
+        if ($this->view->spout === null) {
             $this->view->error('invalid spout type given');
         }
 
-        if ($this->view->spout->params !== false) {
+        if (count($this->view->spout->params) > 0) {
             $this->view->idAttr = 'new-' . rand();
             echo $this->view->render('templates/source_params.phtml');
         }
@@ -85,9 +85,11 @@ class Sources extends BaseController {
      * return all Sources suitable for navigation panel
      * html
      *
+     * @param array $sources
+     *
      * @return string htmltext
      */
-    public function renderSources($sources) {
+    public function renderSources(array $sources) {
         $html = '';
         $itemsDao = new \daos\Items();
         foreach ($sources as $source) {
@@ -174,7 +176,7 @@ class Sources extends BaseController {
             $spoutInstance = $spoutLoader->get($spout);
 
             foreach ($spoutInstance->params as $spoutParamName => $spoutParam) {
-                if ($spoutParam['type'] == 'password'
+                if ($spoutParam['type'] === 'password'
                     && empty($data[$spoutParamName])) {
                     if (!isset($oldSource)) {
                         $oldSource = $sourcesDao->get($id);
@@ -307,7 +309,7 @@ class Sources extends BaseController {
         // get last icon
         for ($i = 0; $i < count($sources); ++$i) {
             $sources[$i]['params'] = json_decode(html_entity_decode($sources[$i]['params']), true);
-            $sources[$i]['error'] = $sources[$i]['error'] == null ? '' : $sources[$i]['error'];
+            $sources[$i]['error'] = $sources[$i]['error'] === null ? '' : $sources[$i]['error'];
         }
 
         $this->view->jsonSuccess($sources);

@@ -17,27 +17,7 @@ class page extends \spouts\rss\feed {
     /** @var string description of this source type */
     public $description = 'Page wall';
 
-    /**
-     * config params
-     * array of arrays with name, type, default value, required, validation type
-     *
-     * - Values for type: text, password, checkbox
-     * - Values for validation: alpha, email, numeric, int, alnum, notempty
-     *
-     * e.g.
-     * array(
-     *   "id" => array(
-     *     "title"      => "URL",
-     *     "type"       => "text",
-     *     "default"    => "",
-     *     "required"   => true,
-     *     "validation" => array("alnum")
-     *   ),
-     *   ....
-     * )
-     *
-     * @var bool|mixed
-     */
+    /** @var array configurable parameters */
     public $params = [
         'user' => [
             'title' => 'Page name',
@@ -57,22 +37,22 @@ class page extends \spouts\rss\feed {
      * I supress all Warnings of SimplePie for ensuring
      * working plugin in PHP Strict mode
      *
-     * @param mixed $params the params of this source
+     * @param array $params the params of this source
      *
      * @return void
      */
-    public function load($params) {
+    public function load(array $params) {
         parent::load(['url' => $this->getXmlUrl($params)]);
     }
 
     /**
      * returns the xml feed url for the source
      *
-     * @param mixed $params params for the source
+     * @param array $params params for the source
      *
      * @return string url as xml
      */
-    public function getXmlUrl($params) {
+    public function getXmlUrl(array $params) {
         $protocol = 'http://';
         if (version_compare(PHP_VERSION, '5.3.0') >= 0 && defined('OPENSSL_VERSION_NUMBER')) {
             $protocol = 'https://';

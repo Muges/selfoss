@@ -13,12 +13,14 @@ class WebClient {
     /**
      * get the user agent to use for web based spouts
      *
+     * @param ?string $agentInfo
+     *
      * @return string the user agent string for this spout
      */
     public static function getUserAgent($agentInfo = null) {
         $userAgent = 'Selfoss/' . \F3::get('version');
 
-        if (is_null($agentInfo)) {
+        if ($agentInfo === null) {
             $agentInfo = [];
         }
 
@@ -30,7 +32,8 @@ class WebClient {
     /**
      * Retrieve content from url
      *
-     * @param string $subagent Extra user agent info to use in the request
+     * @param string $url
+     * @param ?string $agentInfo Extra user agent info to use in the request
      *
      * @return string request data
      */
@@ -45,7 +48,7 @@ class WebClient {
         // parse last (in case of redirects) HTTP status
         $http_status = null;
         foreach ($request['headers'] as $header) {
-            if (substr($header, 0, 5) == 'HTTP/') {
+            if (substr($header, 0, 5) === 'HTTP/') {
                 $tokens = explode(' ', $header);
                 if (isset($tokens[1])) {
                     $http_status = $tokens[1];
@@ -53,7 +56,7 @@ class WebClient {
             }
         }
 
-        if ($http_status != '200') {
+        if ($http_status !== '200') {
             throw new \Exception(substr($request['body'], 0, 512));
         }
 

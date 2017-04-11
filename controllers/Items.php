@@ -19,7 +19,7 @@ class Items extends BaseController {
     public function mark() {
         $this->needsLoggedIn();
 
-        if (\F3::get('PARAMS["item"]') != null) {
+        if (\F3::get('PARAMS["item"]') !== null) {
             $lastid = \F3::get('PARAMS["item"]');
         } elseif (isset($_POST['ids'])) {
             $lastid = $_POST['ids'];
@@ -206,7 +206,7 @@ class Items extends BaseController {
 
             $wantItemsStatuses = array_key_exists('items_statuses', $_GET) && $_GET['items_statuses'] == 'true';
             if ($wantItemsStatuses) {
-                $sync['items'] = $itemsDao->statuses($since->format(\DateTime::ATOM));
+                $sync['items'] = $itemsDao->statuses($since);
             }
         }
         $this->view->jsonSuccess($sync);

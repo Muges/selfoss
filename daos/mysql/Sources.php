@@ -15,12 +15,13 @@ class Sources extends Database {
      *
      * @param string $title
      * @param string $tags
+     * @param string $filter
      * @param string $spout the source type
-     * @param mixed $params depends from spout
+     * @param array $params depends from spout
      *
      * @return int new id
      */
-    public function add($title, $tags, $filter, $spout, $params) {
+    public function add($title, $tags, $filter, $spout, array $params) {
         // sanitize tag list
         $tags = implode(',', preg_split('/\s*,\s*/', trim($tags), -1, PREG_SPLIT_NO_EMPTY));
 
@@ -39,12 +40,13 @@ class Sources extends Database {
      * @param int $id the source id
      * @param string $title new title
      * @param string $tags new tags
+     * @param string $filter
      * @param string $spout new spout
-     * @param mixed $params the new params
+     * @param array $params the new params
      *
      * @return void
      */
-    public function edit($id, $title, $tags, $filter, $spout, $params) {
+    public function edit($id, $title, $tags, $filter, $spout, array $params) {
         // sanitize tag list
         $tags = implode(',', preg_split('/\s*,\s*/', trim($tags), -1, PREG_SPLIT_NO_EMPTY));
 
@@ -81,7 +83,7 @@ class Sources extends Database {
      * @return void
      */
     public function error($id, $error) {
-        if (strlen($error) == 0) {
+        if (strlen($error) === 0) {
             $arr = [
                 ':id' => $id
                 ];
@@ -133,12 +135,12 @@ class Sources extends Database {
     }
 
     /**
-     * returns specified source (false if it doesnt exist)
+     * returns specified source (null if it doesnt exist)
      * or all sources if no id specified
      *
-     * @param int $id (optional) specification of source id
+     * @param ?int $id specification of source id
      *
-     * @return mixed specified source or all sources
+     * @return ?mixed specified source or all sources
      */
     public function get($id = null) {
         // select source by id if specified or return all sources
@@ -147,7 +149,7 @@ class Sources extends Database {
             if (isset($ret[0])) {
                 $ret = $ret[0];
             } else {
-                $ret = false;
+                $ret = null;
             }
         } else {
             $ret = \F3::get('db')->exec('SELECT id, title, tags, spout, params, filter, error FROM ' . \F3::get('db_prefix') . 'sources ORDER BY error DESC, lower(title) ASC');
@@ -255,11 +257,11 @@ class Sources extends Database {
      *
      * @param  string  $title
      * @param  string  $spout the source type
-     * @param  mixed   $params depends from spout
+     * @param  array   $params depends from spout
      *
      * @return int id if any record is found
      */
-    public function checkIfExists($title, $spout, $params) {
+    public function checkIfExists($title, $spout, array $params) {
         // Check if a entry exists with same title, spout and params
         $result = \F3::get('db')->exec('SELECT id FROM ' . \F3::get('db_prefix') . 'sources WHERE title=:title AND spout=:spout AND params=:params', [
             ':title' => trim($title),

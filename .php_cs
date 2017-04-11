@@ -20,6 +20,7 @@ $rules = [
     // additional rules
     'array_syntax' => ['syntax' => 'short'],
     'phpdoc_order' => true,
+    'phpdoc_add_missing_param_annotation' => true,
 ];
 
 return PhpCsFixer\Config::create()

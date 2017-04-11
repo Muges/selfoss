@@ -22,7 +22,7 @@ class images extends feed {
      * @return mixed thumbnail data
      */
     public function getThumbnail() {
-        if ($this->items === false || $this->valid() === false) {
+        if ($this->items === null || $this->valid() === false) {
             return '';
         }
 
@@ -43,7 +43,7 @@ class images extends feed {
         // no enclosures: search image link in content
         } else {
             $image = $this->getImage(@$item->get_content());
-            if ($image !== false) {
+            if ($image !== null) {
                 return $image;
             }
         }
@@ -54,16 +54,14 @@ class images extends feed {
     /**
      * taken from: http://zytzagoo.net/blog/2008/01/23/extracting-images-from-html-using-regular-expressions/
      * Searches for the first occurence of an html <img> element in a string
-     * and extracts the src if it finds it. Returns boolean false in case an
-     * <img> element is not found.
+     * and extracts the src if it finds it. Returns null in case an <img>
+     * element is not found.
      *
-     * @param    string  $str    An HTML string
+     * @param string $html An HTML string
      *
-     * @return   mixed           The contents of the src attribute in the
-     *                           found <img> or boolean false if no <img>
-     *                           is found
+     * @return ?string content of the src attribute of the first image
      */
-    public function getImage($html) {
+    private function getImage($html) {
         if (stripos($html, '<img') !== false) {
             $imgsrc_regex = '#<\s*img [^\>]*src\s*=\s*(["\'])(.*?)\1#im';
             preg_match($imgsrc_regex, $html, $matches);
@@ -72,10 +70,10 @@ class images extends feed {
             if (is_array($matches) && !empty($matches)) {
                 return $matches[2];
             } else {
-                return false;
+                return null;
             }
         } else {
-            return false;
+            return null;
         }
     }
 }

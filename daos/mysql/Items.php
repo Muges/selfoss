@@ -2,6 +2,8 @@
 
 namespace daos\mysql;
 
+use DateTime;
+
 /**
  * Class for accessing persistent saved items -- mysql
  *
@@ -203,14 +205,14 @@ class Items extends Database {
         $order = 'DESC';
 
         // only starred
-        if (isset($options['type']) && $options['type'] == 'starred') {
+        if (isset($options['type']) && $options['type'] === 'starred') {
             $where[] = $this->stmt->isTrue('starred');
         }
 
         // only unread
-        elseif (isset($options['type']) && $options['type'] == 'unread') {
+        elseif (isset($options['type']) && $options['type'] === 'unread') {
             $where[] = $this->stmt->isTrue('unread');
-            if (\F3::get('unread_order') == 'asc') {
+            if (\F3::get('unread_order') === 'asc') {
                 $order = 'ASC';
             }
         }
@@ -260,7 +262,7 @@ class Items extends Database {
                 $options['offset_from_id'], \PDO::PARAM_INT
             ];
             $ltgt = null;
-            if ($order == 'ASC') {
+            if ($order === 'ASC') {
                 $ltgt = '>';
             } else {
                 $ltgt = '<';
@@ -281,7 +283,7 @@ class Items extends Database {
             // limit the query to a sensible max
             && count($options['extra_ids']) <= \F3::get('items_perpage')) {
             $extra_ids_stmt = $this->stmt->intRowMatches('items.id', $options['extra_ids']);
-            if (!is_null($extra_ids_stmt)) {
+            if ($extra_ids_stmt !== null) {
                 $where_ids = $extra_ids_stmt;
             }
         }
@@ -313,7 +315,7 @@ class Items extends Database {
             WHERE items.source=sources.id AND';
         $order_sql = 'ORDER BY items.datetime ' . $order . ', items.id ' . $order;
 
-        if ($where_ids != '') {
+        if ($where_ids !== '') {
             // This UNION is required for the extra explicitely requested items
             // to be included whether or not they would have been excluded by
             // seek, filter, offset rules.
@@ -450,20 +452,20 @@ class Items extends Database {
      *
      * @param int $sourceid id of the source
      *
-     * @return bool|string false if none was found
+     * @return ?string
      */
     public function getLastIcon($sourceid) {
         if (is_numeric($sourceid) === false) {
-            return false;
+            return null;
         }
 
         $res = \F3::get('db')->exec('SELECT icon FROM ' . \F3::get('db_prefix') . 'items WHERE source=:sourceid AND icon!=\'\' AND icon IS NOT NULL ORDER BY ID DESC LIMIT 1',
             [':sourceid' => $sourceid]);
-        if (count($res) == 1) {
+        if (count($res) === 1) {
             return $res[0]['icon'];
         }
 
-        return false;
+        return null;
     }
 
     /**
@@ -515,15 +517,15 @@ class Items extends Database {
     /**
      * returns the statuses of items last update
      *
-     * @param date since to return item statuses
+     * @param DateTime $since minimal date of returned items
      *
      * @return array of unread, starred, etc. status of specified items
      */
-    public function statuses($since) {
+    public function statuses(DateTime $since) {
         $res = \F3::get('db')->exec('SELECT id, unread, starred
             FROM ' . \F3::get('db_prefix') . 'items
             WHERE ' . \F3::get('db_prefix') . 'items.updatetime > :since;',
-                [':since' => [$since, \PDO::PARAM_STR]]);
+                [':since' => [$since->format(\DateTime::ATOM), \PDO::PARAM_STR]]);
         $res = $this->stmt->ensureRowTypes($res, [
             'id' => \PDO::PARAM_INT,
             'unread' => \PDO::PARAM_BOOL,

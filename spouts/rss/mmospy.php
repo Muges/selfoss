@@ -2,6 +2,8 @@
 
 namespace spouts\rss;
 
+use SimplePie_IRI;
+
 /**
  * Plugin for fetching the news from mmospy with the full text
  *
@@ -16,32 +18,8 @@ class mmospy extends feed {
     /** @var string description of this source type */
     public $description = 'This feed fetches the mmospy news with full content (not only the header as content)';
 
-    /**
-     * config params
-     * array of arrays with name, type, default value, required, validation type
-     *
-     * - Values for type: text, password, checkbox, select
-     * - Values for validation: alpha, email, numeric, int, alnum, notempty
-     *
-     * When type is "select", a new entry "values" must be supplied, holding
-     * key/value pairs of internal names (key) and displayed labels (value).
-     * See /spouts/rss/heise for an example.
-     *
-     * e.g.
-     * array(
-     *   "id" => array(
-     *     "title"      => "URL",
-     *     "type"       => "text",
-     *     "default"    => "",
-     *     "required"   => true,
-     *     "validation" => array("alnum")
-     *   ),
-     *   ....
-     * )
-     *
-     * @var bool|mixed
-     */
-    public $params = false;
+    /** @var array configurable parameters */
+    public $params = [];
 
     /**
      * addresses of feeds for the sections
@@ -51,22 +29,22 @@ class mmospy extends feed {
     /**
      * loads content for given source
      *
-     * @param string $url
+     * @param array $params
      *
      * @return void
      */
-    public function load($params) {
-        parent::load(['url' => $this->getXmlUrl()]);
+    public function load(array $params) {
+        parent::load(['url' => $this->getXmlUrl($params)]);
     }
 
     /**
      * returns the xml feed url for the source
      *
-     * @param mixed $params params for the source
+     * @param array $params params for the source
      *
      * @return string url as xml
      */
-    public function getXmlUrl($params = null) {
+    public function getXmlUrl(array $params) {
         return $this->feedUrl;
     }
 
@@ -76,17 +54,16 @@ class mmospy extends feed {
      * @return string content
      */
     public function getContent() {
-        if ($this->items !== false && $this->valid()) {
+        if ($this->items !== null && $this->valid()) {
             $originalContent = file_get_contents($this->getLink());
             preg_match_all('|<div class="content">(.*?)</div>|ims', $originalContent, $matches, PREG_PATTERN_ORDER);
             if (is_array($matches) && is_array($matches[0]) && isset($matches[0][0])) {
                 $content = utf8_encode($matches[0][0]);
-
                 $content = preg_replace_callback(',<a([^>]+)href="([^>"\s]+)",i', function($matches) {
-                    return "<a\1href=\"" . \spouts\rss\mmospy::absolute("\2", 'http://www.mmo-spy.de') . '"';
+                    return '<a' . $matches[1] . 'href="' . SimplePie_IRI::absolutize('http://www.mmo-spy.de', $matches[2]) . '"';
                 }, $content);
                 $content = preg_replace_callback(',<img([^>]+)src="([^>"\s]+)",i', function($matches) {
-                    return "<img\1src=\"" . \spouts\rss\mmospy::absolute("\2", 'http://www.mmo-spy.de') . '"';
+                    return '<img' . $matches[1] . 'src="' . SimplePie_IRI::absolutize('http://www.mmo-spy.de', $matches[2]) . '"';
                 }, $content);
 
                 return $content;
@@ -94,20 +71,5 @@ class mmospy extends feed {
         }
 
         return parent::getContent();
-    }
-
-    /**
-     * convert relative url to absolute
-     *
-     * @return string absolute url
-     * @return string $relative url
-     * @return string $absolute url
-     */
-    public static function absolute($relative, $absolute) {
-        if (preg_match(',^(https?://|ftp://|mailto:|news:),i', $relative)) {
-            return $relative;
-        }
-
-        return $absolute . $relative;
     }
 }

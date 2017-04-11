@@ -18,32 +18,8 @@ class teltarif extends feed {
     /** @var string description of this source type */
     public $description = 'This feed fetches Telarif news with full content (not only the header as content)';
 
-    /**
-     * config params
-     * array of arrays with name, type, default value, required, validation type
-     *
-     * - Values for type: text, password, checkbox, select
-     * - Values for validation: alpha, email, numeric, int, alnum, notempty
-     *
-     * When type is "select", a new entry "values" must be supplied, holding
-     * key/value pairs of internal names (key) and displayed labels (value).
-     * See /spouts/rss/heise for an example.
-     *
-     * e.g.
-     * array(
-     *   "id" => array(
-     *     "title"      => "URL",
-     *     "type"       => "text",
-     *     "default"    => "",
-     *     "required"   => true,
-     *     "validation" => array("alnum")
-     *   ),
-     *   ....
-     * )
-     *
-     * @var bool|mixed
-     */
-    public $params = false;
+    /** @var array configurable parameters */
+    public $params = [];
 
     /**
      * addresses of feeds for the sections
@@ -63,22 +39,22 @@ class teltarif extends feed {
     /**
      * loads content for given source
      *
-     * @param string $url
+     * @param array $params
      *
      * @return void
      */
-    public function load($params) {
-        parent::load(['url' => $this->getXmlUrl()]);
+    public function load(array $params) {
+        parent::load(['url' => $this->getXmlUrl($params)]);
     }
 
     /**
      * returns the xml feed url for the source
      *
-     * @param mixed $params params for the source
+     * @param array $params params for the source
      *
      * @return string url as xml
      */
-    public function getXmlUrl($params = null) {
+    public function getXmlUrl(array $params) {
         return $this->feedUrl;
     }
 
@@ -91,7 +67,7 @@ class teltarif extends feed {
         $start_marker = '<!-- Artikel -->';
         $end_marker = '<!-- NOPRINT Start -->';
 
-        if ($this->items !== false && $this->valid()) {
+        if ($this->items !== null && $this->valid()) {
             $originalContent = @file_get_contents($this->getLink());
             if ($originalContent) {
                 $originalContent = mb_convert_encoding($originalContent, 'UTF-8', 'ISO-8859-1');
@@ -100,7 +76,7 @@ class teltarif extends feed {
                 $text_start_pos = strpos($originalContent, $start_marker);
                 $text_end_pos = strrpos($originalContent, $end_marker);
 
-                if (($text_start_pos != false) && ($text_end_pos != false)) {
+                if ($text_start_pos !== false && $text_end_pos !== false) {
                     $content = substr(
                         $originalContent,
                         $text_start_pos + strlen($start_marker),
