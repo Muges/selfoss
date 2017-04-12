@@ -57,7 +57,9 @@ class Database {
                         uid         VARCHAR(255) NOT NULL,
                         link        TEXT NOT NULL,
                         updatetime  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                        author      VARCHAR(255)
+                        author      VARCHAR(255),
+                        shared      BOOL,
+                        lastseen    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
                     );
                 ');
 
@@ -104,7 +106,7 @@ class Database {
                 ');
 
                 \F3::get('db')->exec('
-                    INSERT INTO version (version) VALUES (8);
+                    INSERT INTO version (version) VALUES (11);
                 ');
 
                 \F3::get('db')->exec('
@@ -193,6 +195,34 @@ class Database {
                     \F3::get('db')->exec('
                         INSERT INTO version (version) VALUES (9);
                     ');
+                }
+                if (strnatcmp($version, '11') < 0) {
+                    \F3::get('db')->exec([
+                        'DROP TRIGGER update_updatetime_trigger',
+                        'ALTER TABLE items ADD lastseen DATETIME',
+                        // Needs to be a trigger since SQLite does not allow adding fields with dynamic defaults.
+                        // http://sqlite.1065341.n5.nabble.com/Can-t-insert-timestamp-field-with-value-CURRENT-TIME-td42729.html
+                        'CREATE TRIGGER insert_lastseen_trigger
+                            AFTER INSERT ON items FOR EACH ROW
+                                BEGIN
+                                    UPDATE items
+                                    SET lastseen = CURRENT_TIMESTAMP
+                                    WHERE id = NEW.id;
+                                END',
+                        'UPDATE items SET lastseen = CURRENT_TIMESTAMP',
+                        'CREATE TRIGGER update_updatetime_trigger
+                            AFTER UPDATE ON items FOR EACH ROW
+                                WHEN (
+                                    OLD.unread <> NEW.unread OR
+                                    OLD.starred <> NEW.starred
+                                )
+                                BEGIN
+                                    UPDATE items
+                                    SET updatetime = CURRENT_TIMESTAMP
+                                    WHERE id = NEW.id;
+                                END;',
+                        'INSERT INTO version (version) VALUES (11);'
+                    ]);
                 }
             }
 

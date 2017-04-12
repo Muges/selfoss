@@ -206,6 +206,33 @@ class Database {
                         'INSERT INTO `' . \F3::get('db_prefix') . 'version` (version) VALUES (10);'
                     ]);
                 }
+                if (strnatcmp($version, '11') < 0) {
+                    \F3::get('db')->exec([
+                        'DROP TRIGGER insert_updatetime_trigger',
+                        'DROP TRIGGER update_updatetime_trigger',
+                        'ALTER TABLE ' . \F3::get('db_prefix') . 'items ADD lastseen DATETIME',
+                        'UPDATE ' . \F3::get('db_prefix') . 'items SET lastseen = CURRENT_TIMESTAMP',
+                        // Needs to be a trigger since MySQL before 5.6.5 do not support default value for DATETIME.
+                        // Needs to be a single trigger due to MariaDB not supporting multiple triggers for the same event on the same table.
+                        'CREATE TRIGGER ' . \F3::get('db_prefix') . 'items_insert_trigger
+                            BEFORE INSERT ON ' . \F3::get('db_prefix') . 'items FOR EACH ROW
+                                BEGIN
+                                    SET NEW.updatetime = NOW();
+                                    SET NEW.lastseen = NOW();
+                                END;',
+                        'CREATE TRIGGER ' . \F3::get('db_prefix') . 'items_update_trigger
+                            BEFORE UPDATE ON ' . \F3::get('db_prefix') . 'items FOR EACH ROW
+                            BEGIN
+                                IF (
+                                    OLD.unread <> NEW.unread OR
+                                    OLD.starred <> NEW.starred
+                                ) THEN
+                                    SET NEW.updatetime = NOW();
+                                END IF;
+                            END;',
+                        'INSERT INTO ' . \F3::get('db_prefix') . 'version (version) VALUES (11)'
+                    ]);
+                }
             }
 
             // just initialize once
